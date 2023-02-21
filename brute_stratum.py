@@ -1,12 +1,12 @@
 from random import shuffle
 from surface_dynamics.all import Origami
 from collections import Counter
-
+from itertools import permutations
 
 
 def get_strat_perm(stratum):
     '''
-    given stratum, generates corresonding commutator perm
+    given stratum, generates corresponding commutator perm
     '''
 
     p_com = {}
@@ -23,6 +23,9 @@ def get_strat_perm(stratum):
     return p_com
 
 def random_perm(perm_size):
+    '''
+    generates random perm of perm_size
+    '''
     vals = [i+1 for i in range(perm_size)]
     shuffle_vals = vals.copy()
     shuffle(shuffle_vals)
@@ -36,6 +39,7 @@ def random_perm(perm_size):
 def one_cycle_perm(perm_size):
     '''
     returns perm of one size
+    and its inverse
     '''
 
     perm = {}
@@ -50,6 +54,10 @@ def one_cycle_perm(perm_size):
                 
 
 def find_strat_sts(stratum):
+    '''
+    finds a pair of permutation for given stratum
+    (by random guessing)
+    '''
 
     strat_counts = Counter(stratum)
 
@@ -73,9 +81,9 @@ def find_strat_sts(stratum):
 
 def get_commutator(h, hi, v, vi):
     '''
-    Given h,v and its inverse
+    Given h,v and its inverses
 
-    create the commutator subgroup
+    create the commutator permutation
     '''
 
     n = len(h)
@@ -88,7 +96,7 @@ def get_commutator(h, hi, v, vi):
 def get_stratum(p):
     '''
     returns the "stratum" of a permutation
-    i.e. we are assuming p is commutator subgroup
+    i.e. we are assuming p is commutator
     '''
 
     n = len(p)
@@ -139,3 +147,75 @@ def convert_cycle(p):
         perm += f'({",".join(cycle)})' # by def of stratum
 
     return perm
+
+def gen_fixed_sts(num_squares):
+    '''
+    generates sts of num_squares squares
+    fixes h to be a one cycle
+
+    Namemly generates h, hi, v, vi
+    '''
+
+    perm = [i for i in range(1, num_squares+1)]
+
+    h = [i % num_squares + 1 for i in range(1,num_squares+1)]
+    for v in permutations(perm):
+        yield dict(zip(perm, h)), dict(zip(h, perm)), \
+                dict(zip(perm, v)), dict(zip(v, perm))
+
+
+def gen_all_sts(num_squares):
+    '''
+    generates all sts of num_squares squares
+
+    Namemly generates h, hi, v, vi
+    '''
+
+    perm = [i for i in range(1, num_squares+1)]
+
+
+    for h in permutations(perm):
+        for v in permutations(perm):
+            yield dict(zip(perm, h)), dict(zip(h, perm)), \
+                  dict(zip(perm, v)), dict(zip(v, perm))
+    
+def gen_cyl_sts(num_squares):
+    '''
+    assumes an even number squares
+    '''
+    perm = [i for i in range(1, num_squares+1)]
+    perm_half = perm[num_squares/2:]
+
+
+
+    h = [i % (num_squares/2) + 1 for i in range(1,num_squares/2+1)] + \
+        [i % (num_squares/2) + 1 + num_squares/2 for i in range(1,num_squares/2+1)]
+
+    for v in permutations(perm[:num_squares/2]):
+        # print(perm_half)
+        yield dict(zip(perm, h)), dict(zip(h, perm)), \
+                dict(zip(perm, perm_half + list(v))), dict(zip(perm_half + list(v), perm))
+
+
+
+def get_stratums(num_squares, fixed=False):
+    '''
+    Finds the distribution of stratums given we fix n
+    '''
+
+    stratums = {}
+    
+    gen = gen_fixed_sts if fixed else gen_all_sts
+    
+    # gen =  gen_cyl_sts
+
+    for  sts in gen(num_squares):
+       c =  get_commutator(*sts)
+       stratum = get_stratum(c)
+
+        # converts stratum to hashable tuple
+       stratum_t =  tuple((sorted(Counter(stratum).items())))
+
+       stratums[stratum_t] = stratums.setdefault(stratum_t,0) + 1
+
+    return stratums
