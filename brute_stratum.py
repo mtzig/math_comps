@@ -198,7 +198,7 @@ def gen_cyl_sts(num_squares):
 
 
 
-def get_stratums(num_squares, fixed=False):
+def get_stratums(num_squares, fixed=False, perms=False):
     '''
     Finds the distribution of stratums given we fix n
     '''
@@ -210,12 +210,17 @@ def get_stratums(num_squares, fixed=False):
     # gen =  gen_cyl_sts
 
     for  sts in gen(num_squares):
-       c =  get_commutator(*sts)
-       stratum = get_stratum(c)
+        c =  get_commutator(*sts)
+        stratum = get_stratum(c)
 
         # converts stratum to hashable tuple
-       stratum_t =  tuple((sorted(Counter(stratum).items())))
+        stratum_t =  tuple((sorted(Counter(stratum).items())))
 
-       stratums[stratum_t] = stratums.setdefault(stratum_t,0) + 1
+        
+        if perms:
+            _ = stratums.setdefault(stratum_t,[])
+            stratums[stratum_t].append((sts[0],sts[2]))
+        else:
+            stratums[stratum_t] = stratums.setdefault(stratum_t,0) + 1
 
     return stratums
