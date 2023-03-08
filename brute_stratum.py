@@ -120,6 +120,11 @@ def get_stratum(p):
 
     return stratum
 
+def get_genus(p):
+    strat = get_stratum(p)
+
+    return int((sum(strat) + 2) / 2)
+
 
 def convert_cycle(p):
     '''
@@ -224,3 +229,55 @@ def get_stratums(num_squares, fixed=False, perms=False):
             stratums[stratum_t] = stratums.setdefault(stratum_t,0) + 1
 
     return stratums
+
+
+
+def get_stratums_sample(num_squares, fixed=False, genus=False, num_samples=1000):
+    '''
+    Finds distribution of stratums given we fix n
+    Uses random sampling to find distriubtion
+    '''
+
+    stratums = {}
+
+    for _ in range(num_samples):
+
+        if fixed:
+            h, hi = one_cycle_perm(num_squares)
+        else:
+            h, hi = random_perm(num_squares)
+        
+        v, vi = random_perm(num_squares)
+
+        c =  get_commutator(h, hi, v, vi)
+
+        # TODO: rename variables
+        if genus: # counts genus
+            stratum_t = get_genus(c)
+        else: # counts stratum
+            stratum = get_stratum(c)
+            stratum_t =  tuple((sorted(Counter(stratum).items())))
+
+        stratums[stratum_t] = stratums.setdefault(stratum_t,0) + 1
+
+    return stratums
+
+def compare_fixed_unfixed(num_squares, genus=False, num_samples=1000):
+
+    stratums_unfixed = get_stratums_sample(num_squares, fixed=False, genus=genus, num_samples=num_samples) 
+    stratums_fixed = get_stratums_sample(num_squares, fixed=True, genus=genus, num_samples=num_samples) 
+
+    # we want to get set of all stratums that were visted
+    keys = set(stratums_unfixed.keys()).union(set(stratums_fixed.keys()))
+
+    strat_diff = {}
+
+    for key in keys:
+        u_val = stratums_unfixed.setdefault(key, 0)
+        f_val = stratums_fixed.setdefault(key, 0)
+
+        diff = abs(u_val - f_val)
+
+        strat_diff[key] = diff
+
+    return stratums_unfixed, stratums_fixed, strat_diff 
