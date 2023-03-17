@@ -239,12 +239,13 @@ def get_stratums_sample(num_squares, fixed=False, genus=False, num_samples=1000)
     '''
 
     stratums = {}
+    
+    if fixed:
+        h, hi = one_cycle_perm(num_squares)
 
     for _ in range(num_samples):
 
-        if fixed:
-            h, hi = one_cycle_perm(num_squares)
-        else:
+        if not fixed:
             h, hi = random_perm(num_squares)
         
         v, vi = random_perm(num_squares)

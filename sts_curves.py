@@ -56,7 +56,7 @@ def unit_saddle(hi, c):
     hi is inverse of horizontal perm
     c is commutator
 
-    basically checks if hc^k has fixed point
+    basically checks if hi c^k has fixed point
     '''
 
     max_k = lcm(*get_cycles(c))
@@ -81,11 +81,13 @@ def get_saddle_dist(num_squares, fixed=False, num_samples=1000):
 
     saddle_count = 0
 
+    if fixed:
+        h, hi = one_cycle_perm(num_squares)
+
     for _ in range(num_samples):
 
-        if fixed:
-            h, hi = one_cycle_perm(num_squares)
-        else:
+
+        if not fixed:
             h, hi = random_perm(num_squares)
         
         v, vi = random_perm(num_squares)
