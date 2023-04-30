@@ -50,7 +50,7 @@ def get_cycles(p):
 
     return cycles
 
-def unit_saddle(hi, c):
+def unit_saddle(vi, hi, c):
     '''
     NOTE: Currently only checks in horizontal direction
     hi is inverse of horizontal perm
@@ -68,11 +68,18 @@ def unit_saddle(hi, c):
         if fixed_point(comp):
             return True
 
+    comp = vi
+
+    for _ in range(max_k):
+        comp = compose(comp, c)
+        if fixed_point(comp):
+            return True
+
     return False
 
     # lcm of cycles
 
-def get_saddle_dist(num_squares, fixed=False, num_samples=1000):
+def get_saddle_prob(num_squares, model='rand', num_samples=100000):
     '''
     get empirical unit saddle prob
 
@@ -81,20 +88,22 @@ def get_saddle_dist(num_squares, fixed=False, num_samples=1000):
 
     saddle_count = 0
 
-    if fixed:
+    if model=='fixed':
         h, hi = one_cycle_perm(num_squares)
 
     for _ in range(num_samples):
 
 
-        if not fixed:
+        if model=='rand':
             h, hi = random_perm(num_squares)
+        elif model=='fixed_conj':
+            h, hi = random_n_cycle(num_squares)
         
         v, vi = random_perm(num_squares)
 
         c =  get_commutator(h, hi, v, vi)
 
-        if unit_saddle(hi, c):
+        if unit_saddle(hi, vi, c):
             saddle_count += 1
 
-    return saddle_count
+    return saddle_count/num_samples

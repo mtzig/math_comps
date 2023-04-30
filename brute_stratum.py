@@ -36,6 +36,24 @@ def random_perm(perm_size):
 
     return perm, perm_i
 
+
+def random_n_cycle(perm_size):
+    '''
+    generates random n-cycle perm of perm_size
+    '''
+
+    vals = [i+1 for i in range(perm_size)]
+    shuffle(vals)
+
+    perm = {}
+    perm_i = {}
+
+    for i in range(perm_size):
+        perm[vals[i % perm_size]] = vals[(i+1) % perm_size]
+        perm_i[vals[(i+1) % perm_size]] = vals[i % perm_size]
+
+    return perm, perm_i
+
 def one_cycle_perm(perm_size):
     '''
     returns perm of one size
@@ -232,21 +250,24 @@ def get_stratums(num_squares, fixed=False, perms=False):
 
 
 
-def get_stratums_sample(num_squares, fixed=False, genus=False, num_samples=1000):
+def get_stratums_sample(num_squares, model='rand', genus=False, num_samples=10000, d=True):
     '''
     Finds distribution of stratums given we fix n
     Uses random sampling to find distriubtion
     '''
 
-    stratums = {}
+    stratums = {} if d else []
     
-    if fixed:
+    if model == 'fixed':
         h, hi = one_cycle_perm(num_squares)
 
     for _ in range(num_samples):
 
-        if not fixed:
+        if model == 'rand':
             h, hi = random_perm(num_squares)
+        elif model == 'fixed_conj':
+            h, hi = random_n_cycle(num_squares)
+
         
         v, vi = random_perm(num_squares)
 
@@ -259,14 +280,18 @@ def get_stratums_sample(num_squares, fixed=False, genus=False, num_samples=1000)
             stratum = get_stratum(c)
             stratum_t =  tuple((sorted(Counter(stratum).items())))
 
-        stratums[stratum_t] = stratums.setdefault(stratum_t,0) + 1
+        if d:
+            stratums[stratum_t] = stratums.setdefault(stratum_t,0) + 1
+        else:
+            stratums.append(stratum_t)
 
     return stratums
 
 def compare_fixed_unfixed(num_squares, genus=False, num_samples=1000):
 
-    stratums_unfixed = get_stratums_sample(num_squares, fixed=False, genus=genus, num_samples=num_samples) 
-    stratums_fixed = get_stratums_sample(num_squares, fixed=True, genus=genus, num_samples=num_samples) 
+    stratums_unfixed = get_stratums_sample(num_squares, model='rand', genus=genus, num_samples=num_samples) 
+    stratums_fixed = get_stratums_sample(num_squares, model='fixed', genus=genus, num_samples=num_samples) 
+    stratums_fixed_conj = get_stratums_sample(num_squares, model='fixed_conj', genus=genus, num_samples=num_samples) 
 
     # we want to get set of all stratums that were visted
     keys = set(stratums_unfixed.keys()).union(set(stratums_fixed.keys()))
