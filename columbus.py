@@ -158,48 +158,39 @@ class STS:
 def alg1(s: STS):
     r_0 = min(*get_cycles(s.h), *get_cycles(s.v))
 
-    l_0 = 4 #r_0 ** 2
-
     S_l0 = compute_S_l0(r_0)
-
     graph = {}
 
     for v in S_l0:
         subgraph = alg2(s, v)
-
-        for vertice in subgraph:
-            graph[vertice] = graph.setdefault(vertice, set()).union(subgraph[vertice])
+        for vertex in subgraph:
+            # graph[vertex] = graph.setdefault(vertex, set()).union(subgraph[vertex])
+            graph.setdefault(vertex, []).extend(subgraph[vertex])
 
     return graph
 
 
-def compute_S_l0(r):
+
+def compute_S_l0(r: int) -> set:
     '''
     r is the square root of l0
-    
-    TODO: might want to only generate a "basis" of vectors
-          i.e. don't generate (-i,j), (j,i), (-j,i) 
     '''
     l_0 = r**2
-    S_l0 = []
+    S_l0 = set()
 
     # we always include (1,0)
-    S_l0.append((1,0))
-    S_l0.append((0,1))
+    S_l0.add((1,0))
+    S_l0.add((0,1))
 
-
-    for i in range(1,r):
-        for j in range(i, r):
-            if gcd(i,j) == 1: # relatively prime
+    for i in range(1, r+1):
+        for j in range(i, r+1):
+            if gcd(i,j) == 1 : # relatively prime
                 if i**2 + j**2 <= l_0:
-                    S_l0.append((i,j))
-                    S_l0.append((-i,j))
-
-                    if i != j: # hardcode to ignore (1,1) duplicate
-                        S_l0.append((j,i))
-                        S_l0.append((-j,i))
-
-
+                    S_l0.add((i,j))
+                    S_l0.add((-i,j))
+                    S_l0.add((j,i))
+                    S_l0.add((-j,i))
+ 
     return S_l0
 
 def alg2(s: STS, v: tuple):
@@ -209,7 +200,7 @@ def alg2(s: STS, v: tuple):
     s_ = s
 
     # initialize alpha to identity
-    alpha = {} # a bijection??
+    alpha = {}
     s_sings = s.get_singularities()
     for sing in s_sings:
         alpha[sing] = sing
@@ -226,22 +217,22 @@ def alg2(s: STS, v: tuple):
     # compute dictionary mapping singularities of A\dot S to S
     alpha_i = STS.get_inverse(alpha)
 
-    # construct l
-    l = []
+    # construct L
+    L = []
     for equiv in alpha_i:
         if len(equiv) > 1: # prevent fixed point
-            l.extend(equiv)
+            L.extend(equiv)
     
-    l = set(l)
+    L = set(L) # remove duplicates
 
     ############################ construct the graph
     graph = {}
     EquivsDict = getEquivsDict(s_.get_singularities())
     lv = (v[0] ** 2 + v[1] ** 2) ** .5 # get length of v
-    for i in l:
+    for i in L:
         j = s_.h[i]
         k = 1
-        while j not in l:
+        while j not in L:
             j = s_.h[j]
             k += 1
 
@@ -286,7 +277,7 @@ def factorA(A):
     Factors A into T and R
 
     Code taken from 
-    https://codegolf.stackexchange.com/questions/198012/decomposition-of-a-matrix-in-sl-2-mathbbz
+    https://codegolf.stackexchange.com/questions/198012/decomposition-o f-a-matrix-in-sl-2-mathbbz
     '''
     a,b,c,d = A[0][0], A[0][1], A[1][0], A[1][1]
     
@@ -337,33 +328,102 @@ def updateAlpha(alpha: dict, s_: STS, transformation: str):
 
     return alpha
 
-# thanks ChatGPT for this code
 def shortest_closed_path(graph):
-    # Find the shortest path from each vertex to every other vertex
-    shortest_paths = {}
-    for start_vertex in graph:
-        dists = {vertex: float('inf') for vertex in graph}
-        dists[start_vertex] = 0
+    '''
+    Finds shortest closed path of a multigraph of degree two
 
-        queue = [(0, start_vertex)]
-        while queue:
-            (distance, current_vertex) = heapq.heappop(queue)
+    NOTE: we only do two nodes due to the fact that our problem 
+    only has two fixed points and thus only two nodes 
+    '''
 
-            # Shortest path to current_vertex found
-            if current_vertex in shortest_paths:
-                continue
 
-            shortest_paths[current_vertex] = distance
-            for neighbor, weight in graph[current_vertex]:
-                if neighbor not in shortest_paths:
-                    heapq.heappush(queue, (distance + weight, neighbor))
 
-    # Find the shortest closed path (cycle) in the graph
-    shortest_cycle = float('inf')
-    for start_vertex in graph:
-        for neighbor, weight in graph[start_vertex]:
-            cycle_distance = shortest_paths[start_vertex] + weight + shortest_paths[neighbor]
-            if cycle_distance < shortest_cycle:
-                shortest_cycle = cycle_distance
+    node1, node2 = list(graph.keys())
 
-    return shortest_cycle
+    n1_loop = __shortest_loop(graph, node1)
+    n2_loop = __shortest_loop(graph, node2)
+    p_edges = __shortest_path(graph, node1, node2) +\
+            __shortest_path(graph, node2, node1)
+    p_edges.sort() # finds the shortest two edges between two nodes
+
+    return min(n1_loop, n2_loop, p_edges[0]+p_edges[1])
+
+def __shortest_loop(graph, node):
+    all_nbs = graph[node]
+    nbs = [float('inf')]
+
+    for nb in all_nbs:
+        if nb[0] == node:
+            nbs.append(nb[1])
+    
+    return min(nbs)
+
+def __shortest_path(graph, node1, node2):
+    all_nbs = graph[node1]
+    nbs = [float('inf'), float('inf')]
+
+    for nb in all_nbs:
+        if nb[0] == node2:
+            nbs.append(nb[1])
+
+    nbs.sort()
+    return [nbs[0], nbs[1]]
+
+
+def get_shortest_curve(o):
+        
+        h = STS.get_cycle_dict(o.r().cycle_string(), o.nb_squares())
+        v = STS.get_cycle_dict(o.u().cycle_string(), o.nb_squares())
+
+        s = STS(h,v)
+
+        g = alg1(s)
+
+        return shortest_closed_path(g)
+
+
+def get_orbit_reps(curve):
+    '''
+        This code is adapted from Columbus:  
+        https://github.com/mathobi/systoles/blob/main/systoles_h11.pyx
+    '''
+    _, _, s_action = curve.origami().sl2z_edges()
+
+    # i, s_orbit_reps = 0, list(s_action.keys())
+
+
+
+    # while i < len(s_orbit_reps):
+    #     o = s_orbit_reps[i]
+    #     s_o = s_action[o] # item corresponding to action
+    #     s_orbit_reps.remove(s_o) # remove it from reps
+    #     s_o = s_action[s_o]
+    #     if s_o != o:
+    #         s_orbit_reps.remove(s_o)
+    #         s_o = s_action[s_o]
+    #         s_orbit_reps.remove(s_o)
+    #     i += 1
+
+    # return s_orbit_reps
+
+
+
+    i, s_orbit_reps_set = 0, set(s_action.keys())
+
+    s_orbit_reps= []
+
+    while s_orbit_reps_set:
+        o = s_orbit_reps_set.pop()
+        s_orbit_reps.append(o)
+        s_o = s_action[o]
+        s_orbit_reps_set.discard(s_o) # remove it from reps
+        s_o = s_action[s_o]
+        
+        if s_o != o:
+            s_orbit_reps_set.discard(s_o)
+            s_o = s_action[s_o]
+            s_orbit_reps_set.discard(s_o)
+        i += 1
+
+
+    return s_orbit_reps

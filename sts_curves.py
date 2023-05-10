@@ -79,7 +79,7 @@ def unit_saddle(vi, hi, c):
 
     # lcm of cycles
 
-def get_saddle_prob(num_squares, model='rand', num_samples=100000):
+def get_saddle_prob(num_squares, model='rand', num_samples=10000):
     '''
     get empirical unit saddle prob
 
